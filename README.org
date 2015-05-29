@@ -1,0 +1,11 @@
+Data visualization for communauto price comparison
+
+Data source: http://www.communauto.com/fr/combien.html, April-May 2015.
+
+Result: [[file:figure-1-day.pdf][Plot which shows that for 1 day weekend trips, Forfait C is
+less expensive than Longue Distance for trips of less than 25
+kilometers.]]
+
+
+
+
