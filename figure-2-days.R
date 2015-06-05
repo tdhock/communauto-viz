@@ -49,27 +49,10 @@ ld <- rate.list$longue.distance(April2015)
 sum(computed$CAD - ld$CAD)
 
 ## Situation: 10-24 hour rental + variable number of kilometers.
-equality <- (32.95-27)/(0.4-0.17)
-dot.km <- c(300, 50, equality)
-dots <-
-  data.frame(rate=c("longue.distance", "forfait.c", "equality"),
-             kilometers=dot.km,
-             days=1, hours=24)
-dot.row.list <- list()
-for(dot.i in 1:nrow(dots)){
-  dot.row <- dots[dot.i, ]
-  rate <- if(dot.row$rate == "equality"){
-    "forfait.c"
-  }else{
-    paste(dot.row$rate)
-  }
-  rate.fun <- rate.list[[rate]]
-  result <- rate.fun(dot.row)
-  dot.row.list[[dot.i]] <- result[, c("rate", "kilometers", "CAD")]
-}
-dot.rows <- do.call(rbind, dot.row.list)
-
-one.day <- data.frame(kilometers=0:500, hours=24, days=1)
+one.day <-
+  data.frame(kilometers=0:500,
+             hours=smallest.hours,
+             days=smallest.days)
 CAD.list <- list()
 for(rate in names(rate.list)){
   rate.fun <- rate.list[[rate]]
@@ -86,6 +69,29 @@ label.txt$price.text <-
 label.txt$label <- with(label.txt, sprintf("%s\n%s", rate, price.text))
 rownames(label.txt) <- label.txt$rate
 CAD$label <- label.txt[paste(CAD$rate), "label"]
+
+equality <- (label.txt["longue.distance", "CAD"]-
+               label.txt["forfait.c", "CAD"])/(0.4-0.17)
+dot.km <- c(300, 50, equality)
+smallest.days <- 2
+smallest.hours <- smallest.days * 24
+dots <-
+  data.frame(rate=c("longue.distance", "forfait.c", "equality"),
+             kilometers=dot.km,
+             days=smallest.days, hours=smallest.hours)
+dot.row.list <- list()
+for(dot.i in 1:nrow(dots)){
+  dot.row <- dots[dot.i, ]
+  rate <- if(dot.row$rate == "equality"){
+    "forfait.c"
+  }else{
+    paste(dot.row$rate)
+  }
+  rate.fun <- rate.list[[rate]]
+  result <- rate.fun(dot.row)
+  dot.row.list[[dot.i]] <- result[, c("rate", "kilometers", "CAD")]
+}
+dot.rows <- do.call(rbind, dot.row.list)
 dot.rows$label <- label.txt[paste(dot.rows$rate), "label"]
 dot.rows$label <- with(dot.rows, ifelse(is.na(label), paste(rate), label))
 label.colors <-
@@ -120,10 +126,10 @@ scatter.rates <- ggplot()+
 library(directlabels)
 with.legend <-
   ggplot()+
-    ggtitle("Communauto Thurs-Sun rates, 10-24 hours")+
+    ggtitle("Communauto Thurs-Sun rates, 2 days")+
     scale_y_continuous("Canadian dollars",
                        minor_breaks=NULL,
-                       breaks=c(0, 100,32.95, 27, dot.rows$CAD),
+                       breaks=c(label.txt$CAD, dot.rows$CAD),
                        labels=scales::dollar)+
     theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))+
     scale_x_continuous(breaks=c(0, dot.rows$kilometers),
@@ -132,7 +138,7 @@ with.legend <-
                          ifelse(round(x)==x,paste(as.integer(x)),
                                 sprintf("%.1f", x))
                        })+
-    coord_cartesian(xlim=c(-200, 400), ylim=c(0, 100))+
+    coord_cartesian(xlim=c(-100, 400), ylim=c(0, 200))+
     geom_line(aes(kilometers, CAD, color=label),
               size=1,
               data=CAD)+
@@ -151,6 +157,6 @@ with.labels <-
   direct.label(with.legend, "first.polygons")+
     guides(color="none")
 
-pdf("figure-1-day.pdf")
+pdf("figure-2-days.pdf")
 print(with.labels)
 dev.off()
