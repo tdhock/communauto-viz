@@ -46,11 +46,12 @@ with(computed, {
 ld <- rate.list$longue.distance(April2015)
 ## The amount we could have saved if we checked the Longue distance
 ## box:
-sum(computed$CAD - ld$CAD)
+computed$CAD - ld$CAD
+chosen <- computed[1,]
 
-## Situation: 2 day rental + variable number of kilometers.
+## Situation: my April2015 rental time + variable number of kilometers.
 one.day <-
-  data.frame(kilometers=0:500,
+  data.frame(kilometers=0:600,
              hours=smallest.hours,
              days=smallest.days)
 CAD.list <- list()
@@ -73,7 +74,7 @@ CAD$label <- label.txt[paste(CAD$rate), "label"]
 equality <- (label.txt["longue.distance", "CAD"]-
                label.txt["forfait.c", "CAD"])/(0.4-0.17)
 dot.km <- c(300, 50, equality)
-smallest.days <- 2
+smallest.days <- with(chosen, only.days + only.hours/24)
 smallest.hours <- smallest.days * 24
 dots <-
   data.frame(rate=c("longue.distance", "forfait.c", "equality"),
@@ -123,22 +124,37 @@ scatter.rates <- ggplot()+
                    color=rate),
                data=rates.info)
 
+max.km <- subset(CAD, kilometers==chosen$kilometers)
+savings <- with(max.km, {
+  data.frame(kilometers=kilometers[1],
+             CAD=mean(CAD),
+             min.CAD=min(CAD),
+             max.CAD=max(CAD),
+             diff=diff(CAD))
+})
 library(directlabels)
 with.legend <-
   ggplot()+
-    ggtitle("Communauto Thurs-Sun rates, 2 days")+
+    geom_segment(aes(kilometers, min.CAD,
+                     xend=kilometers, yend=max.CAD),
+                 data=savings)+
+    geom_text(aes(kilometers, CAD,
+                  label=sprintf("%.2f$ \nsavings ", diff)),
+              hjust=1,
+              data=savings)+
+    ggtitle(paste("Communauto Thurs-Sun rates,", smallest.hours, "hours"))+
     scale_y_continuous("Canadian dollars",
                        minor_breaks=NULL,
-                       breaks=c(label.txt$CAD, dot.rows$CAD),
+                       breaks=c(0, label.txt$CAD, max.km$CAD, dot.rows$CAD),
                        labels=scales::dollar)+
     theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))+
-    scale_x_continuous(breaks=c(0, dot.rows$kilometers),
+    scale_x_continuous(breaks=c(0, max.km$kilometers, dot.rows$kilometers),
                        minor_breaks=NULL,
                        labels=function(x){
                          ifelse(round(x)==x,paste(as.integer(x)),
                                 sprintf("%.1f", x))
                        })+
-    coord_cartesian(xlim=c(-100, 400), ylim=c(0, 200))+
+    coord_cartesian(xlim=c(-100, 600), ylim=c(0, 240))+
     geom_line(aes(kilometers, CAD, color=label),
               size=1,
               data=CAD)+
@@ -157,6 +173,6 @@ with.labels <-
   direct.label(with.legend, "first.polygons")+
     guides(color="none")
 
-pdf("figure-2-days.pdf")
+pdf("figure-difference.pdf")
 print(with.labels)
 dev.off()
